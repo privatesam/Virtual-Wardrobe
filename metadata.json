@@ -1,0 +1,5 @@
+{
+  "name": "Virtual Wardrobe",
+  "description": "An application to catalogue your clothing, create outfits, and track what you wear. Use the power of AI to automatically tag and categorize your clothes from a simple photo.",
+  "requestFramePermissions": []
+}
