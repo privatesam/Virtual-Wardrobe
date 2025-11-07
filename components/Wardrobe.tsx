@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Piece, WearLog } from '../types';
 import Modal from './Modal';
@@ -24,6 +23,12 @@ const PieceCard: React.FC<{ piece: Piece; onSelect: () => void }> = ({ piece, on
 
 const PieceDetail: React.FC<{ piece: Piece; onClose: () => void; onEdit: () => void; }> = ({ piece, onClose, onEdit }) => {
     const { logWear, deletePiece } = useWardrobe();
+    const [mainImage, setMainImage] = useState(piece.images[0]);
+    const [isWornToday, setIsWornToday] = useState(false);
+
+    useEffect(() => {
+        setMainImage(piece.images[0]);
+    }, [piece]);
     
     const handleDelete = () => {
         if(window.confirm(`Are you sure you want to delete "${piece.title}"?`)){
@@ -31,11 +36,35 @@ const PieceDetail: React.FC<{ piece: Piece; onClose: () => void; onEdit: () => v
             onClose();
         }
     }
+    
+    const handleWearToday = () => {
+        logWear(piece.id, 'piece');
+        setIsWornToday(true);
+        setTimeout(() => {
+            setIsWornToday(false);
+        }, 2000);
+    };
+
 
     return (
         <div className="text-textdark">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <img src={piece.images[0]} alt={piece.title} className="w-full h-auto object-cover rounded-lg" />
+                <div>
+                    <img src={mainImage} alt={piece.title} className="w-full h-auto object-cover rounded-lg" />
+                    {piece.images.length > 1 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {piece.images.map((img, index) => (
+                                <img 
+                                    key={index}
+                                    src={img}
+                                    alt={`${piece.title} thumbnail ${index + 1}`}
+                                    className={`w-16 h-16 object-cover rounded-md cursor-pointer border-2 ${img === mainImage ? 'border-blue-500' : 'border-transparent'}`}
+                                    onClick={() => setMainImage(img)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
                 <div className="space-y-4">
                     <div>
                         <p className="text-sm text-highlight">Brand</p>
@@ -67,7 +96,13 @@ const PieceDetail: React.FC<{ piece: Piece; onClose: () => void; onEdit: () => v
             </div>
             
             <div className="mt-6 flex gap-4">
-                <button onClick={() => logWear(piece.id, 'piece')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Wear Today</button>
+                <button
+                    onClick={handleWearToday}
+                    disabled={isWornToday}
+                    className={`text-white font-bold py-2 px-4 rounded-lg transition-colors ${isWornToday ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+                >
+                    {isWornToday ? 'Logged!' : 'Wear Today'}
+                </button>
                 <button onClick={onEdit} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Edit</button>
                 <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Delete</button>
             </div>
@@ -84,12 +119,27 @@ const PieceDetail: React.FC<{ piece: Piece; onClose: () => void; onEdit: () => v
     );
 };
 
-const Wardrobe: React.FC = () => {
-    const { pieces } = useWardrobe();
+interface WardrobeProps {
+    initialPieceId?: string;
+    onClearInitialItem: () => void;
+}
+
+const Wardrobe: React.FC<WardrobeProps> = ({ initialPieceId, onClearInitialItem }) => {
+    const { pieces, getPieceById } = useWardrobe();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
+
+    useEffect(() => {
+        if (initialPieceId) {
+            const pieceToView = getPieceById(initialPieceId);
+            if (pieceToView) {
+                setSelectedPiece(pieceToView);
+            }
+            onClearInitialItem();
+        }
+    }, [initialPieceId, getPieceById, onClearInitialItem]);
 
     const filteredPieces = useMemo(() => {
         return pieces.filter(piece =>

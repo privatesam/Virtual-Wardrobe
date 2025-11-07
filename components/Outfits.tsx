@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Outfit, WearLog, Piece } from '../types';
 import Modal from './Modal';
@@ -25,6 +24,7 @@ const OutfitCard: React.FC<{ outfit: Outfit; onSelect: () => void }> = ({ outfit
 const OutfitDetail: React.FC<{ outfit: Outfit; onClose: () => void; onEdit: () => void; }> = ({ outfit, onClose, onEdit }) => {
     const { logWear, getPieceById, deleteOutfit } = useWardrobe();
     const outfitPieces = useMemo(() => outfit.pieceIds.map(id => getPieceById(id)).filter((p): p is Piece => p !== undefined), [outfit.pieceIds, getPieceById]);
+    const [isWornToday, setIsWornToday] = useState(false);
 
     const handleDelete = () => {
         if(window.confirm(`Are you sure you want to delete "${outfit.title}"?`)){
@@ -32,6 +32,14 @@ const OutfitDetail: React.FC<{ outfit: Outfit; onClose: () => void; onEdit: () =
             onClose();
         }
     }
+
+    const handleWearToday = () => {
+        logWear(outfit.id, 'outfit');
+        setIsWornToday(true);
+        setTimeout(() => {
+            setIsWornToday(false);
+        }, 2000);
+    };
 
     return (
         <div className="text-textdark">
@@ -63,7 +71,13 @@ const OutfitDetail: React.FC<{ outfit: Outfit; onClose: () => void; onEdit: () =
             </div>
             
             <div className="mt-6 flex gap-4">
-                <button onClick={() => logWear(outfit.id, 'outfit')} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Wear Today</button>
+                <button
+                    onClick={handleWearToday}
+                    disabled={isWornToday}
+                    className={`text-white font-bold py-2 px-4 rounded-lg transition-colors ${isWornToday ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+                >
+                    {isWornToday ? 'Logged!' : 'Wear Today'}
+                </button>
                 <button onClick={onEdit} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Edit</button>
                 <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Delete</button>
             </div>
@@ -80,12 +94,27 @@ const OutfitDetail: React.FC<{ outfit: Outfit; onClose: () => void; onEdit: () =
     );
 };
 
-const Outfits: React.FC = () => {
-    const { outfits } = useWardrobe();
+interface OutfitsProps {
+    initialOutfitId?: string;
+    onClearInitialItem: () => void;
+}
+
+const Outfits: React.FC<OutfitsProps> = ({ initialOutfitId, onClearInitialItem }) => {
+    const { outfits, getOutfitById } = useWardrobe();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingOutfit, setEditingOutfit] = useState<Outfit | null>(null);
+
+     useEffect(() => {
+        if (initialOutfitId) {
+            const outfitToView = getOutfitById(initialOutfitId);
+            if (outfitToView) {
+                setSelectedOutfit(outfitToView);
+            }
+            onClearInitialItem();
+        }
+    }, [initialOutfitId, getOutfitById, onClearInitialItem]);
 
     const filteredOutfits = useMemo(() => {
         return outfits.filter(outfit =>

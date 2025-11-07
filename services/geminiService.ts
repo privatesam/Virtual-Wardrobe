@@ -1,5 +1,4 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -51,5 +50,47 @@ export const analyzeClothingImage = async (base64Image: string, mimeType: string
   } catch (error) {
     console.error("Error analyzing image with Gemini:", error);
     throw new Error("Failed to analyze image. Please check your API key and try again.");
+  }
+};
+
+interface EditedImage {
+    base64: string;
+    mimeType: string;
+}
+
+export const removeBackgroundImage = async (base64Image: string, mimeType: string): Promise<EditedImage> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64Image,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: 'Isolate the main clothing item in this image by removing the background. The new background should be solid white.',
+          },
+        ],
+      },
+      config: {
+          responseModalities: [Modality.IMAGE],
+      },
+    });
+
+    for (const part of response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        return {
+            base64: part.inlineData.data,
+            mimeType: part.inlineData.mimeType,
+        };
+      }
+    }
+    throw new Error("No image was returned from the API.");
+  } catch (error) {
+    console.error("Error removing background with Gemini:", error);
+    throw new Error("Failed to remove background. Please check your API key and try again.");
   }
 };

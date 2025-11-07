@@ -9,21 +9,37 @@ import Analytics from './components/Analytics';
 
 type Tab = 'dashboard' | 'wardrobe' | 'outfits' | 'analytics';
 
+interface ViewingItem {
+  type: 'piece' | 'outfit';
+  id: string;
+}
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [viewingItem, setViewingItem] = useState<ViewingItem | null>(null);
+
+  const handleViewItem = (item: ViewingItem) => {
+    setActiveTab(item.type === 'piece' ? 'wardrobe' : 'outfits');
+    setViewingItem(item);
+  };
+
+  const clearViewingItem = () => {
+    setViewingItem(null);
+  };
+
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard setActiveTab={setActiveTab} />;
+        return <Dashboard setActiveTab={setActiveTab} onViewItem={handleViewItem} />;
       case 'wardrobe':
-        return <Wardrobe />;
+        return <Wardrobe initialPieceId={viewingItem?.type === 'piece' ? viewingItem.id : undefined} onClearInitialItem={clearViewingItem} />;
       case 'outfits':
-        return <Outfits />;
+        return <Outfits initialOutfitId={viewingItem?.type === 'outfit' ? viewingItem.id : undefined} onClearInitialItem={clearViewingItem} />;
       case 'analytics':
         return <Analytics />;
       default:
-        return <Dashboard setActiveTab={setActiveTab} />;
+        return <Dashboard setActiveTab={setActiveTab} onViewItem={handleViewItem}/>;
     }
   };
 

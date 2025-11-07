@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Outfit } from '../types';
@@ -60,7 +59,8 @@ const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
     const outfitData = {
       title,
       notes,
-      pieceIds: Array.from(selectedPieceIds),
+      // FIX: Changed from Array.from to spread syntax to ensure correct type inference for pieceIds from Set<string> to string[].
+      pieceIds: [...selectedPieceIds],
       tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
     };
 

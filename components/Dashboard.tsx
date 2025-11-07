@@ -5,10 +5,11 @@ import { Piece, Outfit, Season } from '../types';
 
 interface DashboardProps {
   setActiveTab: (tab: 'dashboard' | 'wardrobe' | 'outfits' | 'analytics') => void;
+  onViewItem: (item: { type: 'piece' | 'outfit', id: string }) => void;
 }
 
-const PieceCard: React.FC<{ piece: Piece }> = ({ piece }) => (
-  <div className="bg-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-1 transition-transform duration-300">
+const PieceCard: React.FC<{ piece: Piece; onClick: () => void }> = ({ piece, onClick }) => (
+  <div onClick={onClick} className="bg-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
     <img src={piece.images[0]} alt={piece.title} className="w-full h-64 object-cover" />
     <div className="p-4">
       <h3 className="font-bold text-lg text-white">{piece.title}</h3>
@@ -17,8 +18,8 @@ const PieceCard: React.FC<{ piece: Piece }> = ({ piece }) => (
   </div>
 );
 
-const OutfitCard: React.FC<{ outfit: Outfit }> = ({ outfit }) => (
-  <div className="bg-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-1 transition-transform duration-300">
+const OutfitCard: React.FC<{ outfit: Outfit; onClick: () => void }> = ({ outfit, onClick }) => (
+  <div onClick={onClick} className="bg-secondary rounded-lg overflow-hidden shadow-lg transform hover:-translate-y-1 transition-transform duration-300 cursor-pointer">
     <img src={outfit.images[0]} alt={outfit.title} className="w-full h-64 object-cover" />
     <div className="p-4">
       <h3 className="font-bold text-lg text-white">{outfit.title}</h3>
@@ -27,7 +28,7 @@ const OutfitCard: React.FC<{ outfit: Outfit }> = ({ outfit }) => (
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
+const Dashboard: React.FC<DashboardProps> = ({ setActiveTab, onViewItem }) => {
   const { pieces, outfits } = useWardrobe();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -83,7 +84,9 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
           <h2 className="text-2xl font-bold text-white mb-4">Recently Worn</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {recentlyWornItems.map(item =>
-              item.type === 'piece' ? <PieceCard key={`${item.id}-${item.wearDate}`} piece={item as Piece} /> : <OutfitCard key={`${item.id}-${item.wearDate}`} outfit={item as Outfit} />
+              item.type === 'piece' ? 
+              <PieceCard key={`${item.id}-${item.wearDate}`} piece={item as Piece} onClick={() => onViewItem({ type: 'piece', id: item.id })} /> : 
+              <OutfitCard key={`${item.id}-${item.wearDate}`} outfit={item as Outfit} onClick={() => onViewItem({ type: 'outfit', id: item.id })} />
             )}
           </div>
         </section>
@@ -92,7 +95,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       <section>
         <h2 className="text-2xl font-bold text-white mb-4">Seasonal Suggestions ({getCurrentSeason()})</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {seasonalSuggestions.map(piece => <PieceCard key={piece.id} piece={piece} />)}
+          {seasonalSuggestions.map(piece => <PieceCard key={piece.id} piece={piece} onClick={() => onViewItem({ type: 'piece', id: piece.id })} />)}
         </div>
       </section>
 
