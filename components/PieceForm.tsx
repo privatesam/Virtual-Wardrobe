@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Piece, Season } from '../types';
-import { analyzeClothingImage, fileToBase64, removeBackgroundImage } from '../services/geminiService';
+import { useSettings } from '../hooks/useSettings';
+import { analyzeImage, fileToBase64, removeBackground } from '../services/aiService';
+
 
 interface PieceFormProps {
   pieceToEdit: Piece | null;
@@ -10,6 +12,7 @@ interface PieceFormProps {
 
 const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
   const { addPiece, updatePiece } = useWardrobe();
+  const { apiKey, apiProvider } = useSettings();
   const [formData, setFormData] = useState({
     title: '',
     brand: '',
@@ -91,12 +94,16 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
         setError('Please upload a new image first.');
         return;
     }
+    if (!apiKey) {
+        setError('API Key not found. Please add it in the Admin Settings tab.');
+        return;
+    }
     setIsAnalyzing(true);
     setError('');
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        const result = await analyzeClothingImage(base64Image, primaryImageFile.type);
+        const result = await analyzeImage(apiKey, apiProvider, base64Image, primaryImageFile.type);
         if (result) {
             setFormData({
                 title: result.title || '',
@@ -120,12 +127,16 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
         setError('Please upload a new image first.');
         return;
     }
+     if (!apiKey) {
+        setError('API Key not found. Please add it in the Admin Settings tab.');
+        return;
+    }
     setIsAnalyzing(true);
     setError('');
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackgroundImage(base64Image, primaryImageFile.type);
+        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiKey, apiProvider, base64Image, primaryImageFile.type);
         
         const dataUrl = `data:${newMimeType};base64,${newBase64Image}`;
         setImages(currentImages => [dataUrl, ...currentImages.slice(1)]);
@@ -178,6 +189,8 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
     onDone();
   };
 
+  const isRemoveBgDisabled = isAnalyzing || imageFiles.length === 0 || apiProvider !== 'gemini';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-textdark">
       {error && <div className="bg-red-500 text-white p-3 rounded-md">{error}</div>}
@@ -215,7 +228,7 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
             <button type="button" onClick={handleAnalyzeImage} disabled={isAnalyzing || imageFiles.length === 0} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500">
               {isAnalyzing ? 'Processing...' : 'Analyze Details'}
             </button>
-            <button type="button" onClick={handleRemoveBackground} disabled={isAnalyzing || imageFiles.length === 0} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500">
+            <button type="button" onClick={handleRemoveBackground} disabled={isRemoveBgDisabled} title={apiProvider !== 'gemini' ? 'Only available with Gemini provider' : ''} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">
               {isAnalyzing ? 'Processing...' : 'Remove Background'}
             </button>
         </div>

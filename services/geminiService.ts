@@ -13,9 +13,11 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
-export const analyzeClothingImage = async (base64Image: string, mimeType: string) => {
+export const analyzeClothingImage = async (apiKey: string, base64Image: string, mimeType: string) => {
+  if (!apiKey) {
+    throw new Error("Gemini API key is not configured. Please add it in settings.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -49,7 +51,7 @@ export const analyzeClothingImage = async (base64Image: string, mimeType: string
     return JSON.parse(jsonString);
   } catch (error) {
     console.error("Error analyzing image with Gemini:", error);
-    throw new Error("Failed to analyze image. Please check your API key and try again.");
+    throw new Error("Failed to analyze image with Gemini. Please check your API key and try again.");
   }
 };
 
@@ -58,7 +60,11 @@ interface EditedImage {
     mimeType: string;
 }
 
-export const removeBackgroundImage = async (base64Image: string, mimeType: string): Promise<EditedImage> => {
+export const removeBackgroundImage = async (apiKey: string, base64Image: string, mimeType: string): Promise<EditedImage> => {
+  if (!apiKey) {
+    throw new Error("Gemini API key is not configured. Please add it in settings.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -91,6 +97,6 @@ export const removeBackgroundImage = async (base64Image: string, mimeType: strin
     throw new Error("No image was returned from the API.");
   } catch (error) {
     console.error("Error removing background with Gemini:", error);
-    throw new Error("Failed to remove background. Please check your API key and try again.");
+    throw new Error("Failed to remove background with Gemini. Please check your API key and try again.");
   }
 };

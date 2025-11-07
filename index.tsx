@@ -1,7 +1,8 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { WardrobeProvider } from './hooks/useWardrobe';
+import { SettingsProvider } from './hooks/useSettings';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,6 +12,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <SettingsProvider>
+      <WardrobeProvider>
+        <App />
+      </WardrobeProvider>
+    </SettingsProvider>
   </React.StrictMode>
 );

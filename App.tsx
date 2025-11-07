@@ -1,13 +1,12 @@
-
 import React, { useState } from 'react';
-import { WardrobeProvider } from './hooks/useWardrobe';
-import { DashboardIcon, WardrobeIcon, OutfitIcon, AnalyticsIcon } from './components/icons';
+import { DashboardIcon, WardrobeIcon, OutfitIcon, AnalyticsIcon, SettingsIcon } from './components/icons';
 import Dashboard from './components/Dashboard';
 import Wardrobe from './components/Wardrobe';
 import Outfits from './components/Outfits';
 import Analytics from './components/Analytics';
+import Settings from './components/Settings';
 
-type Tab = 'dashboard' | 'wardrobe' | 'outfits' | 'analytics';
+type Tab = 'dashboard' | 'wardrobe' | 'outfits' | 'analytics' | 'settings';
 
 interface ViewingItem {
   type: 'piece' | 'outfit';
@@ -38,6 +37,8 @@ const App: React.FC = () => {
         return <Outfits initialOutfitId={viewingItem?.type === 'outfit' ? viewingItem.id : undefined} onClearInitialItem={clearViewingItem} />;
       case 'analytics':
         return <Analytics />;
+      case 'settings':
+        return <Settings />;
       default:
         return <Dashboard setActiveTab={setActiveTab} onViewItem={handleViewItem}/>;
     }
@@ -57,7 +58,6 @@ const App: React.FC = () => {
   );
 
   return (
-    <WardrobeProvider>
       <div className="flex flex-col sm:flex-row min-h-screen bg-primary font-sans">
         <nav className="w-full sm:w-64 bg-secondary p-4 flex sm:flex-col justify-around sm:justify-start gap-4 sticky top-0 sm:h-screen z-10 border-b sm:border-b-0 sm:border-r border-accent">
           <div className="text-2xl font-bold text-white mb-0 sm:mb-8 text-center sm:text-left">
@@ -67,13 +67,13 @@ const App: React.FC = () => {
           <NavItem tabName="wardrobe" icon={<WardrobeIcon />} label="Wardrobe" />
           <NavItem tabName="outfits" icon={<OutfitIcon />} label="Outfits" />
           <NavItem tabName="analytics" icon={<AnalyticsIcon />} label="Analytics" />
+          <NavItem tabName="settings" icon={<SettingsIcon />} label="Settings" />
         </nav>
 
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
           {renderContent()}
         </main>
       </div>
-    </WardrobeProvider>
   );
 };
 
