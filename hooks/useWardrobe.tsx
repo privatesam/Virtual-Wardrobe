@@ -1,22 +1,20 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Piece, Outfit, WearLog } from '../types';
-import { INITIAL_PIECES, INITIAL_OUTFITS } from '../constants';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
+import { Piece, Outfit } from '../types';
 
 interface WardrobeContextType {
   pieces: Piece[];
   outfits: Outfit[];
-  // FIX: Added 'images' to Omit to correctly type the parameters for addPiece, aligning with its usage.
-  addPiece: (piece: Omit<Piece, 'id' | 'wearHistory' | 'createdAt' | 'images'>, images: string[]) => void;
-  updatePiece: (piece: Piece) => void;
-  deletePiece: (pieceId: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  addPiece: (pieceData: Omit<Piece, 'id' | 'images' | 'wearHistory' | 'createdAt'>, images: string[]) => Promise<void>;
+  updatePiece: (updatedPiece: Piece) => Promise<void>;
+  deletePiece: (pieceId: string) => Promise<void>;
   getPieceById: (id: string) => Piece | undefined;
-  // FIX: Added 'images' to Omit to correctly type the parameters for addOutfit, resolving error in OutfitForm.tsx.
-  addOutfit: (outfit: Omit<Outfit, 'id' | 'wearHistory' | 'createdAt' | 'images'>, images: string[]) => void;
-  updateOutfit: (outfit: Outfit) => void;
-  deleteOutfit: (outfitId: string) => void;
+  addOutfit: (outfitData: Omit<Outfit, 'id' | 'images' | 'wearHistory' | 'createdAt'>, images: string[]) => Promise<void>;
+  updateOutfit: (updatedOutfit: Outfit) => Promise<void>;
+  deleteOutfit: (outfitId: string) => Promise<void>;
   getOutfitById: (id: string) => Outfit | undefined;
-  logWear: (itemId: string, type: 'piece' | 'outfit', notes?: string) => void;
+  logWear: (id: string, type: 'piece' | 'outfit') => Promise<void>;
 }
 
 const WardrobeContext = createContext<WardrobeContextType | undefined>(undefined);
@@ -24,111 +22,158 @@ const WardrobeContext = createContext<WardrobeContextType | undefined>(undefined
 export const WardrobeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const storedPieces = localStorage.getItem('wardrobe_pieces');
-      const storedOutfits = localStorage.getItem('wardrobe_outfits');
-      if (storedPieces) {
-        setPieces(JSON.parse(storedPieces));
-      } else {
-        setPieces(INITIAL_PIECES);
+      const response = await fetch('/api/data');
+      if (!response.ok) {
+        throw new Error('Failed to fetch data from the server.');
       }
-      if (storedOutfits) {
-        setOutfits(JSON.parse(storedOutfits));
-      } else {
-        setOutfits(INITIAL_OUTFITS);
-      }
-    } catch (error) {
-      console.error("Failed to load data from localStorage", error);
-      setPieces(INITIAL_PIECES);
-      setOutfits(INITIAL_OUTFITS);
+      const data = await response.json();
+      setPieces(data.pieces || []);
+      setOutfits(data.outfits || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load data from server');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const addPiece = async (pieceData: Omit<Piece, 'id' | 'images' | 'wearHistory' | 'createdAt'>, images: string[]) => {
     try {
-      localStorage.setItem('wardrobe_pieces', JSON.stringify(pieces));
-    } catch (error) {
-      console.error("Failed to save pieces to localStorage", error);
+      const response = await fetch('/api/pieces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...pieceData, images }),
+      });
+      if (!response.ok) throw new Error('Failed to add piece.');
+      const newPiece = await response.json();
+      setPieces(prev => [newPiece, ...prev]);
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
-  }, [pieces]);
+  };
 
-  useEffect(() => {
+  const updatePiece = async (updatedPiece: Piece) => {
+     try {
+      const response = await fetch(`/api/pieces/${updatedPiece.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedPiece),
+      });
+      if (!response.ok) throw new Error('Failed to update piece.');
+      const savedPiece = await response.json();
+      setPieces(prev => prev.map(p => p.id === savedPiece.id ? savedPiece : p));
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const deletePiece = async (pieceId: string) => {
     try {
-      localStorage.setItem('wardrobe_outfits', JSON.stringify(outfits));
-    } catch (error) {
-      console.error("Failed to save outfits to localStorage", error);
+      const response = await fetch(`/api/pieces/${pieceId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete piece.');
+      setPieces(prev => prev.filter(p => p.id !== pieceId));
+      // The backend will handle removing the piece from outfits, so we just refetch all data for simplicity
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
-  }, [outfits]);
-
-  // FIX: Updated pieceData type to match the corrected interface definition.
-  const addPiece = useCallback((pieceData: Omit<Piece, 'id' | 'wearHistory' | 'createdAt' | 'images'>, images: string[]) => {
-    const newPiece: Piece = {
-      ...pieceData,
-      id: `p${Date.now()}`,
-      images,
-      wearHistory: [],
-      createdAt: new Date().toISOString(),
-    };
-    setPieces(prev => [...prev, newPiece]);
-  }, []);
-
-  const updatePiece = useCallback((updatedPiece: Piece) => {
-    setPieces(prev => prev.map(p => p.id === updatedPiece.id ? updatedPiece : p));
-  }, []);
-
-  const deletePiece = useCallback((pieceId: string) => {
-    setPieces(prev => prev.filter(p => p.id !== pieceId));
-    // Also remove from outfits
-    setOutfits(prev => prev.map(o => ({ ...o, pieceIds: o.pieceIds.filter(id => id !== pieceId) })));
-  }, []);
+  };
   
   const getPieceById = useCallback((id: string) => pieces.find(p => p.id === id), [pieces]);
 
-  // FIX: Updated outfitData type to match the corrected interface definition.
-  const addOutfit = useCallback((outfitData: Omit<Outfit, 'id' | 'wearHistory' | 'createdAt' | 'images'>, images: string[]) => {
-    const newOutfit: Outfit = {
-      ...outfitData,
-      id: `o${Date.now()}`,
-      images,
-      wearHistory: [],
-      createdAt: new Date().toISOString(),
-    };
-    setOutfits(prev => [...prev, newOutfit]);
-  }, []);
-  
-  const updateOutfit = useCallback((updatedOutfit: Outfit) => {
-    setOutfits(prev => prev.map(o => o.id === updatedOutfit.id ? updatedOutfit : o));
-  }, []);
-  
-  const deleteOutfit = useCallback((outfitId: string) => {
-    setOutfits(prev => prev.filter(o => o.id !== outfitId));
-  }, []);
+  const addOutfit = async (outfitData: Omit<Outfit, 'id' | 'images' | 'wearHistory' | 'createdAt'>, images: string[]) => {
+    try {
+      const response = await fetch('/api/outfits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...outfitData, images }),
+      });
+      if (!response.ok) throw new Error('Failed to add outfit.');
+      const newOutfit = await response.json();
+      setOutfits(prev => [newOutfit, ...prev]);
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
 
+  const updateOutfit = async (updatedOutfit: Outfit) => {
+    try {
+      const response = await fetch(`/api/outfits/${updatedOutfit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedOutfit),
+      });
+      if (!response.ok) throw new Error('Failed to update outfit.');
+      const savedOutfit = await response.json();
+      setOutfits(prev => prev.map(o => o.id === savedOutfit.id ? savedOutfit : o));
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const deleteOutfit = async (outfitId: string) => {
+     try {
+      const response = await fetch(`/api/outfits/${outfitId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete outfit.');
+      setOutfits(prev => prev.filter(o => o.id !== outfitId));
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+  
   const getOutfitById = useCallback((id: string) => outfits.find(o => o.id === id), [outfits]);
 
-  const logWear = useCallback((itemId: string, type: 'piece' | 'outfit', notes?: string) => {
-    const newWearLog: WearLog = {
-      id: `w${Date.now()}`,
-      date: new Date().toISOString(),
-      notes,
-    };
-
-    if (type === 'piece') {
-      setPieces(prev => prev.map(p => p.id === itemId ? { ...p, wearHistory: [...p.wearHistory, newWearLog] } : p));
-    } else { // outfit
-      const outfit = outfits.find(o => o.id === itemId);
-      if (outfit) {
-        setOutfits(prev => prev.map(o => o.id === itemId ? { ...o, wearHistory: [...o.wearHistory, newWearLog] } : o));
-        // Also log wear for each piece in the outfit
-        setPieces(prevPieces => prevPieces.map(p => outfit.pieceIds.includes(p.id) ? { ...p, wearHistory: [...p.wearHistory, newWearLog] } : p));
-      }
+  const logWear = async (id: string, type: 'piece' | 'outfit') => {
+     try {
+      const response = await fetch(`/api/logwear`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, type }),
+      });
+      if (!response.ok) throw new Error('Failed to log wear.');
+      // Refetch data to get all updated wear histories
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
-  }, [outfits]);
+  };
+
+  const value = {
+    pieces,
+    outfits,
+    isLoading,
+    error,
+    addPiece,
+    updatePiece,
+    deletePiece,
+    getPieceById,
+    addOutfit,
+    updateOutfit,
+    deleteOutfit,
+    getOutfitById,
+    logWear,
+  };
 
   return (
-    <WardrobeContext.Provider value={{ pieces, outfits, addPiece, updatePiece, deletePiece, getPieceById, addOutfit, updateOutfit, deleteOutfit, getOutfitById, logWear }}>
+    <WardrobeContext.Provider value={value}>
       {children}
     </WardrobeContext.Provider>
   );

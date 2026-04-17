@@ -7,9 +7,11 @@ interface OpenAIResponse {
     tags: string[];
 }
 
-export const analyzeClothingImage = async (apiKey: string, base64Image: string, mimeType: string): Promise<OpenAIResponse> => {
+export const analyzeClothingImage = async (base64Image: string, mimeType: string): Promise<OpenAIResponse> => {
+    // FIX: Use environment variable for API key
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-        throw new Error("OpenAI API key is not configured. Please add it in settings.");
+        throw new Error("OpenAI API key is not configured.");
     }
 
     const API_URL = 'https://api.openai.com/v1/chat/completions';

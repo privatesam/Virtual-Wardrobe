@@ -2,19 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
 
 const Settings: React.FC = () => {
-    const { apiKey, apiProvider, setApiKey, setApiProvider } = useSettings();
-    const [localApiKey, setLocalApiKey] = useState('');
+    const { apiProvider, setApiProvider } = useSettings();
     const [localApiProvider, setLocalApiProvider] = useState(apiProvider);
     const [isSaved, setIsSaved] = useState(false);
 
     useEffect(() => {
-        setLocalApiKey(apiKey);
         setLocalApiProvider(apiProvider);
-    }, [apiKey, apiProvider]);
+    }, [apiProvider]);
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        setApiKey(localApiKey);
         setApiProvider(localApiProvider);
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
@@ -40,20 +37,6 @@ const Settings: React.FC = () => {
                                 <p className="text-xs text-textdark mt-1">Uses GPT-4o for image analysis. Note: Background removal is not supported with OpenAI.</p>
                             </label>
                         </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="apiKey" className="block font-medium text-lg mb-2">API Key</label>
-                        <p className="text-sm text-highlight mb-4">Your API key is stored securely in your browser's local storage and is never sent to our servers.</p>
-                        <input
-                            id="apiKey"
-                            type="password"
-                            value={localApiKey}
-                            onChange={(e) => setLocalApiKey(e.target.value)}
-                            placeholder="Enter your API key"
-                            className="w-full p-3 bg-accent border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
                     </div>
                     
                     <div className="flex justify-end">

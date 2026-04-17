@@ -25,12 +25,11 @@ const OutfitDetail: React.FC<{ outfit: Outfit; onClose: () => void; onEdit: () =
     const { logWear, getPieceById, deleteOutfit } = useWardrobe();
     const outfitPieces = useMemo(() => outfit.pieceIds.map(id => getPieceById(id)).filter((p): p is Piece => p !== undefined), [outfit.pieceIds, getPieceById]);
     const [isWornToday, setIsWornToday] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const handleDelete = () => {
-        if(window.confirm(`Are you sure you want to delete "${outfit.title}"?`)){
-            deleteOutfit(outfit.id);
-            onClose();
-        }
+        deleteOutfit(outfit.id);
+        onClose();
     }
 
     const handleWearToday = () => {
@@ -70,16 +69,25 @@ const OutfitDetail: React.FC<{ outfit: Outfit; onClose: () => void; onEdit: () =
                 </div>
             </div>
             
-            <div className="mt-6 flex gap-4">
+            <div className="mt-6 flex flex-wrap gap-4">
                 <button
                     onClick={handleWearToday}
                     disabled={isWornToday}
-                    className={`text-white font-bold py-2 px-4 rounded-lg transition-colors ${isWornToday ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    className={`text-white font-bold py-2 px-6 rounded-lg transition-colors ${isWornToday ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                     {isWornToday ? 'Logged!' : 'Wear Today'}
                 </button>
-                <button onClick={onEdit} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Edit</button>
-                <button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Delete</button>
+                <button onClick={onEdit} className="bg-secondary hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition-colors border border-gray-600">Edit</button>
+                
+                {!showDeleteConfirm ? (
+                    <button onClick={() => setShowDeleteConfirm(true)} className="bg-red-600/20 hover:bg-red-600/30 text-red-500 font-bold py-2 px-6 rounded-lg transition-colors border border-red-500/50">Delete</button>
+                ) : (
+                    <div className="flex items-center gap-2 bg-red-600 p-1 rounded-lg">
+                        <span className="text-white text-xs px-2 font-bold uppercase tracking-wider">Confirm Delete?</span>
+                        <button onClick={handleDelete} className="bg-white text-red-600 hover:bg-gray-100 font-bold py-1.5 px-4 rounded-md text-sm transition-colors">Yes</button>
+                        <button onClick={() => setShowDeleteConfirm(false)} className="bg-red-700 text-white hover:bg-red-800 font-bold py-1.5 px-4 rounded-md text-sm transition-colors">No</button>
+                    </div>
+                )}
             </div>
             
             <div className="mt-6">

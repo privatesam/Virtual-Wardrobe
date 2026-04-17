@@ -13,10 +13,10 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-export const analyzeClothingImage = async (apiKey: string, base64Image: string, mimeType: string) => {
-  if (!apiKey) {
-    throw new Error("Gemini API key is not configured. Please add it in settings.");
-  }
+// FIX: Update to use process.env.API_KEY instead of passing API key as an argument.
+export const analyzeClothingImage = async (base64Image: string, mimeType: string) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
@@ -47,7 +47,7 @@ export const analyzeClothingImage = async (apiKey: string, base64Image: string, 
       }
     });
 
-    const jsonString = response.text;
+    const jsonString = response.text || "{}";
     return JSON.parse(jsonString);
   } catch (error) {
     console.error("Error analyzing image with Gemini:", error);
@@ -60,10 +60,10 @@ interface EditedImage {
     mimeType: string;
 }
 
-export const removeBackgroundImage = async (apiKey: string, base64Image: string, mimeType: string): Promise<EditedImage> => {
-  if (!apiKey) {
-    throw new Error("Gemini API key is not configured. Please add it in settings.");
-  }
+// FIX: Update to use process.env.API_KEY instead of passing API key as an argument.
+export const removeBackgroundImage = async (base64Image: string, mimeType: string): Promise<EditedImage> => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
@@ -86,11 +86,16 @@ export const removeBackgroundImage = async (apiKey: string, base64Image: string,
       },
     });
 
-    for (const part of response.candidates[0].content.parts) {
+    const candidates = response.candidates;
+    if (!candidates || candidates.length === 0) throw new Error("No candidates returned");
+    const parts = candidates[0].content?.parts;
+    if (!parts) throw new Error("No parts returned");
+
+    for (const part of parts) {
       if (part.inlineData) {
         return {
-            base64: part.inlineData.data,
-            mimeType: part.inlineData.mimeType,
+            base64: part.inlineData.data || "",
+            mimeType: part.inlineData.mimeType || "",
         };
       }
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Piece, Season } from '../types';
 import { useSettings } from '../hooks/useSettings';
+// FIX: Update imports to reflect new service function signatures
 import { analyzeImage, fileToBase64, removeBackground } from '../services/aiService';
 
 
@@ -12,7 +13,8 @@ interface PieceFormProps {
 
 const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
   const { addPiece, updatePiece } = useWardrobe();
-  const { apiKey, apiProvider } = useSettings();
+  // FIX: Removed apiKey from useSettings as it's no longer managed in the UI
+  const { apiProvider } = useSettings();
   const [formData, setFormData] = useState({
     title: '',
     brand: '',
@@ -94,16 +96,14 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
         setError('Please upload a new image first.');
         return;
     }
-    if (!apiKey) {
-        setError('API Key not found. Please add it in the Admin Settings tab.');
-        return;
-    }
+    
     setIsAnalyzing(true);
     setError('');
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        const result = await analyzeImage(apiKey, apiProvider, base64Image, primaryImageFile.type);
+        // FIX: Removed apiKey from service call
+        const result = await analyzeImage(apiProvider, base64Image, primaryImageFile.type);
         if (result) {
             setFormData({
                 title: result.title || '',
@@ -127,16 +127,13 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
         setError('Please upload a new image first.');
         return;
     }
-     if (!apiKey) {
-        setError('API Key not found. Please add it in the Admin Settings tab.');
-        return;
-    }
     setIsAnalyzing(true);
     setError('');
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiKey, apiProvider, base64Image, primaryImageFile.type);
+        // FIX: Removed apiKey from service call
+        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiProvider, base64Image, primaryImageFile.type);
         
         const dataUrl = `data:${newMimeType};base64,${newBase64Image}`;
         setImages(currentImages => [dataUrl, ...currentImages.slice(1)]);
