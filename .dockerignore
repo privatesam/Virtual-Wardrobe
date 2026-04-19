@@ -1,1 +1,7 @@
-~�er��z{l����('��
+node_modules
+dist
+data
+.env
+.git
+npm-debug.log
+.DS_Store
