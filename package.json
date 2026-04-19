@@ -1,6 +1,7 @@
 {
   "name": "virtual-wardrobe-frontend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Frontend for the Virtual Wardrobe application",
   "private": true,
   "scripts": {
