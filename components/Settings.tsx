@@ -51,6 +51,7 @@ const Settings: React.FC = () => {
 
                     <div className="space-y-4">
                         <h2 className="text-xl font-bold mb-2">API Configuration</h2>
+                        <p className="text-sm text-highlight">You can provide keys here (persisted in your browser) or via server environment variables (<code>GEMINI_API_KEY</code>, <code>OPENAI_API_KEY</code>).</p>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Gemini API Key</label>

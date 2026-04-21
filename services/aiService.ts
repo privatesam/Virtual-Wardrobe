@@ -1,5 +1,4 @@
 import * as geminiService from './geminiService';
-import * as openAIService from './openAIService';
 import { Season } from '../types';
 
 type ApiProvider = 'gemini' | 'openai';
@@ -23,15 +22,23 @@ export const analyzeImage = async (
     mimeType: string,
     apiKey: string
 ): Promise<AnalysisResult> => {
-    if (apiProvider === 'gemini') {
-        const result = await geminiService.analyzeClothingImage(base64Image, mimeType, apiKey);
-        return result as AnalysisResult;
-    } else if (apiProvider === 'openai') {
-        const result = await openAIService.analyzeClothingImage(base64Image, mimeType, apiKey);
-        return result as AnalysisResult;
-    } else {
-        throw new Error(`Unsupported API provider: ${apiProvider}`);
+    const response = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            provider: apiProvider,
+            base64Image,
+            mimeType,
+            userApiKey: apiKey
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'AI Analysis failed');
     }
+
+    return response.json();
 };
 
 export const removeBackground = async (
@@ -39,11 +46,22 @@ export const removeBackground = async (
     mimeType: string,
     geminiKey: string
 ): Promise<EditedImage> => {
-    if (!geminiKey) {
-        throw new Error("Gemini API key is required for background removal. Please add it in Settings.");
-    }
-    return geminiService.removeBackgroundImage(base64Image, mimeType, geminiKey);
-};
+    const response = await fetch('/api/ai/remove-bg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            base64Image,
+            mimeType,
+            userGeminiKey: geminiKey
+        })
+    });
 
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Background removal failed');
+    }
+
+    return response.json();
+};
 
 export const fileToBase64 = geminiService.fileToBase64;

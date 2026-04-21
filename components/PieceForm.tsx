@@ -184,7 +184,7 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
     onDone();
   };
 
-  const isRemoveBgDisabled = isAnalyzing || imageFiles.length === 0 || !geminiKey;
+  const isRemoveBgDisabled = isAnalyzing || imageFiles.length === 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-textdark">

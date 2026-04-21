@@ -182,6 +182,137 @@ async function startServer() {
     }
   });
 
+  // --- AI Logic Routes ---
+  app.post('/api/ai/analyze', async (req, res) => {
+    const { provider, base64Image, mimeType, userApiKey } = req.body;
+    
+    try {
+      if (provider === 'gemini') {
+        const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+        if (!apiKey) throw new Error('Gemini API key is not configured.');
+        
+        // Lazy load Gemini SDK with robust export handling
+        const GenAIModule = await import("@google/genai");
+        const GoogleGenAI = (GenAIModule as any).GoogleGenAI || (GenAIModule as any).default?.GoogleGenAI || (GenAIModule as any).default;
+        const SchemaType = (GenAIModule as any).SchemaType || (GenAIModule as any).default?.SchemaType;
+        
+        const genAI = new GoogleGenAI(apiKey);
+        if (typeof genAI.getGenerativeModel !== 'function') {
+          throw new Error('Failed to initialize Gemini SDK correctly. getGenerativeModel is not a function.');
+        }
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        
+        const prompt = "Analyze this image of a clothing item. Describe it in JSON format.";
+        const result = await model.generateContent({
+            contents: [{
+                role: 'user',
+                parts: [
+                    { inlineData: { data: base64Image, mimeType } },
+                    { text: prompt }
+                ]
+            }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                        title: { type: SchemaType.STRING },
+                        color: { type: SchemaType.STRING },
+                        style: { type: SchemaType.STRING },
+                        season: { type: SchemaType.STRING },
+                        tags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+                    },
+                    required: ["title", "color", "style", "season", "tags"]
+                }
+            }
+        });
+
+        res.json(JSON.parse(result.response.text()));
+      } else if (provider === 'openai') {
+        const apiKey = userApiKey || process.env.OPENAI_API_KEY;
+        if (!apiKey) throw new Error('OpenAI API key is not configured.');
+        
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o',
+                response_format: { type: "json_object" },
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: 'Analyze this image of a clothing item. Describe it in JSON format conforming to this schema: { "title": "string", "color": "string", "style": "string", "season": "string", "tags": ["string"] }.' },
+                        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } }
+                    ]
+                }],
+                max_tokens: 300
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || 'OpenAI API Error');
+        }
+        
+        const data = await response.json();
+        res.json(JSON.parse(data.choices[0].message.content));
+      } else {
+        res.status(400).json({ message: 'Invalid AI provider' });
+      }
+    } catch (error: any) {
+      console.error('AI Analysis Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/ai/remove-bg', async (req, res) => {
+    const { base64Image, mimeType, userGeminiKey } = req.body;
+    const apiKey = userGeminiKey || process.env.GEMINI_API_KEY;
+
+    try {
+      if (!apiKey) throw new Error('Gemini API key is required for background removal.');
+      
+      // Lazy load Gemini SDK with robust export handling
+      const GenAIModule = await import("@google/genai");
+      const GoogleGenAI = (GenAIModule as any).GoogleGenAI || (GenAIModule as any).default?.GoogleGenAI || (GenAIModule as any).default;
+      
+      const genAI = new GoogleGenAI(apiKey);
+      if (typeof genAI.getGenerativeModel !== 'function') {
+        throw new Error('Failed to initialize Gemini SDK correctly. getGenerativeModel is not a function.');
+      }
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      
+      const result = await model.generateContent({
+          contents: [{
+              role: 'user',
+              parts: [
+                  { inlineData: { data: base64Image, mimeType } },
+                  { text: 'Isolate the main clothing item in this image by removing the background. The new background should be solid white.' }
+              ]
+          }],
+          generationConfig: {}
+      });
+
+      const parts = result.response.candidates?.[0].content?.parts;
+      const imagePart = parts?.find(p => p.inlineData);
+      
+      if (imagePart?.inlineData) {
+        res.json({
+            base64: imagePart.inlineData.data,
+            mimeType: imagePart.inlineData.mimeType
+        });
+      } else {
+        throw new Error('No image was returned from the Gemini API.');
+      }
+    } catch (error: any) {
+      console.error('Background Removal Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // --- Vite Middleware ---
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

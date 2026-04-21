@@ -256,13 +256,13 @@ const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
             <button 
                 type="button" 
                 onClick={handleRemoveBackground}
-                disabled={isGenerating || !imageFile || !geminiKey}
+                disabled={isGenerating || !imageFile}
                 className={`flex items-center gap-2 font-bold py-2 px-4 rounded-lg transition-all whitespace-nowrap ${
-                  isGenerating || !imageFile || !geminiKey
+                  isGenerating || !imageFile
                     ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     : 'bg-teal-600 hover:bg-teal-700 text-white'
                 }`}
-                title={!geminiKey ? 'Gemini API key required for this feature' : 'Remove background from uploaded image'}
+                title="Remove background from uploaded image"
             >
                 {isGenerating ? (
                    <span className="flex items-center gap-2">
