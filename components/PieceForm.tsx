@@ -131,7 +131,7 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiProvider, base64Image, primaryImageFile.type, geminiKey);
+        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(base64Image, primaryImageFile.type, geminiKey);
         
         const dataUrl = `data:${newMimeType};base64,${newBase64Image}`;
         setImages(currentImages => [dataUrl, ...currentImages.slice(1)]);
@@ -184,7 +184,7 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
     onDone();
   };
 
-  const isRemoveBgDisabled = isAnalyzing || imageFiles.length === 0 || apiProvider !== 'gemini';
+  const isRemoveBgDisabled = isAnalyzing || imageFiles.length === 0 || !geminiKey;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 text-textdark">

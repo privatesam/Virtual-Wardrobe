@@ -35,16 +35,15 @@ export const analyzeImage = async (
 };
 
 export const removeBackground = async (
-    apiProvider: ApiProvider,
     base64Image: string,
     mimeType: string,
-    apiKey: string
+    geminiKey: string
 ): Promise<EditedImage> => {
-    if (apiProvider === 'gemini') {
-        return geminiService.removeBackgroundImage(base64Image, mimeType, apiKey);
-    } else {
-        throw new Error("Background removal is only supported by the Gemini provider.");
+    if (!geminiKey) {
+        throw new Error("Gemini API key is required for background removal. Please add it in Settings.");
     }
+    return geminiService.removeBackgroundImage(base64Image, mimeType, geminiKey);
 };
+
 
 export const fileToBase64 = geminiService.fileToBase64;

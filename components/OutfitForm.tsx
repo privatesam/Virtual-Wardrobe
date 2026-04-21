@@ -12,7 +12,7 @@ interface OutfitFormProps {
 
 const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
   const { pieces, addOutfit, updateOutfit } = useWardrobe();
-  const { apiProvider, geminiKey } = useSettings();
+  const { geminiKey } = useSettings();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [tags, setTags] = useState('');
@@ -57,7 +57,7 @@ const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
     setError('');
     try {
         const base64Image = await fileToBase64(imageFile);
-        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiProvider, base64Image, imageFile.type, geminiKey);
+        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(base64Image, imageFile.type, geminiKey);
         
         const dataUrl = `data:${newMimeType};base64,${newBase64Image}`;
         setImages([dataUrl]);
@@ -256,13 +256,13 @@ const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
             <button 
                 type="button" 
                 onClick={handleRemoveBackground}
-                disabled={isGenerating || !imageFile || apiProvider !== 'gemini'}
+                disabled={isGenerating || !imageFile || !geminiKey}
                 className={`flex items-center gap-2 font-bold py-2 px-4 rounded-lg transition-all whitespace-nowrap ${
-                  isGenerating || !imageFile || apiProvider !== 'gemini'
+                  isGenerating || !imageFile || !geminiKey
                     ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     : 'bg-teal-600 hover:bg-teal-700 text-white'
                 }`}
-                title={apiProvider !== 'gemini' ? 'Only available with Gemini provider' : 'Remove background from uploaded image'}
+                title={!geminiKey ? 'Gemini API key required for this feature' : 'Remove background from uploaded image'}
             >
                 {isGenerating ? (
                    <span className="flex items-center gap-2">
