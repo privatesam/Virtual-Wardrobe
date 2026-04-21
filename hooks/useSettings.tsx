@@ -5,12 +5,18 @@ type ApiProvider = 'gemini' | 'openai';
 interface SettingsContextType {
   apiProvider: ApiProvider;
   setApiProvider: (provider: ApiProvider) => void;
+  geminiKey: string;
+  setGeminiKey: (key: string) => void;
+  openaiKey: string;
+  setOpenaiKey: (key: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [apiProvider, setApiProviderInternal] = useState<ApiProvider>('gemini');
+  const [geminiKey, setGeminiKeyInternal] = useState<string>('');
+  const [openaiKey, setOpenaiKeyInternal] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -18,6 +24,12 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
       if (storedProvider && ['gemini', 'openai'].includes(storedProvider)) {
         setApiProviderInternal(storedProvider);
       }
+      
+      const storedGeminiKey = localStorage.getItem('ai_geminiKey');
+      if (storedGeminiKey) setGeminiKeyInternal(storedGeminiKey);
+      
+      const storedOpenaiKey = localStorage.getItem('ai_openaiKey');
+      if (storedOpenaiKey) setOpenaiKeyInternal(storedOpenaiKey);
     } catch (error) {
       console.error("Failed to load settings from localStorage", error);
     }
@@ -32,8 +44,33 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
+  const setGeminiKey = (key: string) => {
+    try {
+      localStorage.setItem('ai_geminiKey', key);
+      setGeminiKeyInternal(key);
+    } catch (error) {
+      console.error("Failed to save Gemini key to localStorage", error);
+    }
+  };
+
+  const setOpenaiKey = (key: string) => {
+    try {
+      localStorage.setItem('ai_openaiKey', key);
+      setOpenaiKeyInternal(key);
+    } catch (error) {
+      console.error("Failed to save OpenAI key to localStorage", error);
+    }
+  };
+
   return (
-    <SettingsContext.Provider value={{ apiProvider, setApiProvider }}>
+    <SettingsContext.Provider value={{ 
+      apiProvider, 
+      setApiProvider, 
+      geminiKey, 
+      setGeminiKey, 
+      openaiKey, 
+      setOpenaiKey 
+    }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -14,13 +14,12 @@ export const fileToBase64 = (file: File): Promise<string> => {
 };
 
 // FIX: Update to use process.env.API_KEY instead of passing API key as an argument.
-export const analyzeClothingImage = async (base64Image: string, mimeType: string) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
+export const analyzeClothingImage = async (base64Image: string, mimeType: string, apiKey: string) => {
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set. Please check your settings.");
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash', // Use a standard model name
       contents: {
         parts: [
           { inlineData: { data: base64Image, mimeType } },
@@ -60,10 +59,8 @@ interface EditedImage {
     mimeType: string;
 }
 
-// FIX: Update to use process.env.API_KEY instead of passing API key as an argument.
-export const removeBackgroundImage = async (base64Image: string, mimeType: string): Promise<EditedImage> => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
+export const removeBackgroundImage = async (base64Image: string, mimeType: string, apiKey: string): Promise<EditedImage> => {
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set. Please check your settings.");
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({

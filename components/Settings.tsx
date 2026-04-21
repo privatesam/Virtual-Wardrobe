@@ -2,17 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/useSettings';
 
 const Settings: React.FC = () => {
-    const { apiProvider, setApiProvider } = useSettings();
+    const { 
+        apiProvider, setApiProvider, 
+        geminiKey, setGeminiKey, 
+        openaiKey, setOpenaiKey 
+    } = useSettings();
     const [localApiProvider, setLocalApiProvider] = useState(apiProvider);
+    const [localGeminiKey, setLocalGeminiKey] = useState(geminiKey);
+    const [localOpenaiKey, setLocalOpenaiKey] = useState(openaiKey);
     const [isSaved, setIsSaved] = useState(false);
 
     useEffect(() => {
         setLocalApiProvider(apiProvider);
-    }, [apiProvider]);
+        setLocalGeminiKey(geminiKey);
+        setLocalOpenaiKey(openaiKey);
+    }, [apiProvider, geminiKey, openaiKey]);
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         setApiProvider(localApiProvider);
+        setGeminiKey(localGeminiKey);
+        setOpenaiKey(localOpenaiKey);
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };
@@ -29,13 +39,41 @@ const Settings: React.FC = () => {
                             <label className={`flex-1 p-4 rounded-lg cursor-pointer transition-all ${localApiProvider === 'gemini' ? 'bg-blue-600 ring-2 ring-white' : 'bg-accent hover:bg-gray-600'}`}>
                                 <input type="radio" name="provider" value="gemini" checked={localApiProvider === 'gemini'} onChange={() => setLocalApiProvider('gemini')} className="hidden" />
                                 <span className="font-bold text-lg">Google Gemini</span>
-                                <p className="text-xs text-textdark mt-1">Uses the Gemini Flash models for fast and accurate analysis, including background removal.</p>
+                                <p className="text-xs text-textdark mt-1">Uses Gemini 2.0 Flash for fast analysis and background removal.</p>
                             </label>
                             <label className={`flex-1 p-4 rounded-lg cursor-pointer transition-all ${localApiProvider === 'openai' ? 'bg-green-600 ring-2 ring-white' : 'bg-accent hover:bg-gray-600'}`}>
                                 <input type="radio" name="provider" value="openai" checked={localApiProvider === 'openai'} onChange={() => setLocalApiProvider('openai')} className="hidden" />
                                 <span className="font-bold text-lg">OpenAI</span>
-                                <p className="text-xs text-textdark mt-1">Uses GPT-4o for image analysis. Note: Background removal is not supported with OpenAI.</p>
+                                <p className="text-xs text-textdark mt-1">Uses GPT-4o for image analysis.</p>
                             </label>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-bold mb-2">API Configuration</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Gemini API Key</label>
+                                <input 
+                                    type="password" 
+                                    value={localGeminiKey} 
+                                    onChange={(e) => setLocalGeminiKey(e.target.value)}
+                                    placeholder="Enter your Google Gemini API key"
+                                    className="w-full p-2 bg-accent border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <p className="text-xs text-highlight mt-1">Required for Gemini provider and background removal.</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">OpenAI API Key</label>
+                                <input 
+                                    type="password" 
+                                    value={localOpenaiKey} 
+                                    onChange={(e) => setLocalOpenaiKey(e.target.value)}
+                                    placeholder="Enter your OpenAI API key"
+                                    className="w-full p-2 bg-accent border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <p className="text-xs text-highlight mt-1">Required for OpenAI provider.</p>
+                            </div>
                         </div>
                     </div>
                     

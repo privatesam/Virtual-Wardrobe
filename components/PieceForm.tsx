@@ -13,8 +13,7 @@ interface PieceFormProps {
 
 const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
   const { addPiece, updatePiece } = useWardrobe();
-  // FIX: Removed apiKey from useSettings as it's no longer managed in the UI
-  const { apiProvider } = useSettings();
+  const { apiProvider, geminiKey, openaiKey } = useSettings();
   const [formData, setFormData] = useState({
     title: '',
     brand: '',
@@ -102,8 +101,8 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        // FIX: Removed apiKey from service call
-        const result = await analyzeImage(apiProvider, base64Image, primaryImageFile.type);
+        const apiKey = apiProvider === 'gemini' ? geminiKey : openaiKey;
+        const result = await analyzeImage(apiProvider, base64Image, primaryImageFile.type, apiKey);
         if (result) {
             setFormData({
                 title: result.title || '',
@@ -132,8 +131,7 @@ const PieceForm: React.FC<PieceFormProps> = ({ pieceToEdit, onDone }) => {
     try {
         const primaryImageFile = imageFiles[0];
         const base64Image = await fileToBase64(primaryImageFile);
-        // FIX: Removed apiKey from service call
-        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiProvider, base64Image, primaryImageFile.type);
+        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiProvider, base64Image, primaryImageFile.type, geminiKey);
         
         const dataUrl = `data:${newMimeType};base64,${newBase64Image}`;
         setImages(currentImages => [dataUrl, ...currentImages.slice(1)]);

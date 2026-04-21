@@ -20,13 +20,14 @@ interface EditedImage {
 export const analyzeImage = async (
     apiProvider: ApiProvider,
     base64Image: string,
-    mimeType: string
+    mimeType: string,
+    apiKey: string
 ): Promise<AnalysisResult> => {
     if (apiProvider === 'gemini') {
-        const result = await geminiService.analyzeClothingImage(base64Image, mimeType);
+        const result = await geminiService.analyzeClothingImage(base64Image, mimeType, apiKey);
         return result as AnalysisResult;
     } else if (apiProvider === 'openai') {
-        const result = await openAIService.analyzeClothingImage(base64Image, mimeType);
+        const result = await openAIService.analyzeClothingImage(base64Image, mimeType, apiKey);
         return result as AnalysisResult;
     } else {
         throw new Error(`Unsupported API provider: ${apiProvider}`);
@@ -36,10 +37,11 @@ export const analyzeImage = async (
 export const removeBackground = async (
     apiProvider: ApiProvider,
     base64Image: string,
-    mimeType: string
+    mimeType: string,
+    apiKey: string
 ): Promise<EditedImage> => {
     if (apiProvider === 'gemini') {
-        return geminiService.removeBackgroundImage(base64Image, mimeType);
+        return geminiService.removeBackgroundImage(base64Image, mimeType, apiKey);
     } else {
         throw new Error("Background removal is only supported by the Gemini provider.");
     }
