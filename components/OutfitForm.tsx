@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { Outfit, Piece } from '../types';
 import { SparklesIcon } from './icons';
+import { useSettings } from '../hooks/useSettings';
+import { removeBackground, fileToBase64 } from '../services/aiService';
 
 interface OutfitFormProps {
   outfitToEdit: Outfit | null;
@@ -10,11 +12,13 @@ interface OutfitFormProps {
 
 const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
   const { pieces, addOutfit, updateOutfit } = useWardrobe();
+  const { apiProvider, geminiKey } = useSettings();
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
   const [tags, setTags] = useState('');
   const [selectedPieceIds, setSelectedPieceIds] = useState<Set<string>>(new Set());
   const [images, setImages] = useState<string[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,11 +39,50 @@ const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImages([reader.result as string]);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!imageFile) {
+        setError('Please upload an image first.');
+        return;
+    }
+    setIsGenerating(true);
+    setError('');
+    try {
+        const base64Image = await fileToBase64(imageFile);
+        const { base64: newBase64Image, mimeType: newMimeType } = await removeBackground(apiProvider, base64Image, imageFile.type, geminiKey);
+        
+        const dataUrl = `data:${newMimeType};base64,${newBase64Image}`;
+        setImages([dataUrl]);
+        
+        // Update imageFile with the processed version
+        const byteCharacters = atob(newBase64Image);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: newMimeType});
+        
+        const lastDot = imageFile.name.lastIndexOf('.');
+        const baseName = lastDot > -1 ? imageFile.name.substring(0, lastDot) : imageFile.name;
+        const extension = newMimeType.split('/')[1] || 'png';
+        const fileName = `${baseName}_no_bg.${extension}`;
+
+        const newFile = new File([blob], fileName, { type: newMimeType });
+        setImageFile(newFile);
+
+    } catch (err: any) {
+        setError(err.message || 'An unknown error occurred.');
+    } finally {
+        setIsGenerating(false);
     }
   };
   
@@ -210,8 +253,29 @@ const OutfitForm: React.FC<OutfitFormProps> = ({ outfitToEdit, onDone }) => {
                   <><SparklesIcon /> <span className="hidden sm:inline">Magic Preview</span></>
                 )}
             </button>
+            <button 
+                type="button" 
+                onClick={handleRemoveBackground}
+                disabled={isGenerating || !imageFile || apiProvider !== 'gemini'}
+                className={`flex items-center gap-2 font-bold py-2 px-4 rounded-lg transition-all whitespace-nowrap ${
+                  isGenerating || !imageFile || apiProvider !== 'gemini'
+                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    : 'bg-teal-600 hover:bg-teal-700 text-white'
+                }`}
+                title={apiProvider !== 'gemini' ? 'Only available with Gemini provider' : 'Remove background from uploaded image'}
+            >
+                {isGenerating ? (
+                   <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </span>
+                ) : (
+                  'Remove BG'
+                )}
+            </button>
         </div>
         {images.length > 0 && <img src={images[0]} alt="Preview" className="mt-2 rounded-lg max-h-60 mx-auto shadow-xl border-2 border-accent" />}
+        {!imageFile && outfitToEdit && <p className="text-xs text-highlight mt-1">To use "Remove BG", please re-upload an image for this outfit.</p>}
       </div>
       
        <div className="space-y-2">
